@@ -13,7 +13,7 @@ export interface Transaction {
   title: string;
   amount: number;
   type: TransactionType;
-  category: string; // Category name or ID
+  category: string;
   date: string;     // ISO YYYY-MM-DD
   notes?: string;
   createdAt: number;
@@ -21,7 +21,7 @@ export interface Transaction {
 
 export interface Budget {
   id: string;
-  category: string; // Matches Category name
+  category: string;
   limit: number;
   period: 'monthly' | 'weekly';
 }
@@ -44,5 +44,5 @@ export interface AppContextType {
   deleteBudget: (id: string) => Promise<void>;
   getCategorySpent: (category: string) => number;
   getSummary: () => AppSummary;
-  resetToSeedData: () => Promise<void>;
+  clearAllData: () => Promise<void>;
 }

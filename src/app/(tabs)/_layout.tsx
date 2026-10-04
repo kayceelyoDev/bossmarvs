@@ -1,3 +1,4 @@
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
@@ -11,21 +12,25 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
-          height: 60,
-          paddingBottom: 8,
+          borderTopWidth: 1,
+          height: 64,
+          paddingBottom: 10,
           paddingTop: 8,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
         },
         headerStyle: {
-          backgroundColor: COLORS.surface,
+          backgroundColor: COLORS.background,
         },
         headerTitleStyle: {
           color: COLORS.text,
-          fontWeight: '700',
-          fontSize: 18,
+          fontWeight: '800',
+          fontSize: 22,
+          letterSpacing: -0.5,
         },
         headerShadowVisible: false,
       }}
@@ -35,8 +40,12 @@ export default function TabLayout() {
         options={{
           title: 'Dashboard',
           tabBarLabel: 'Dashboard',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'grid' : 'grid-outline'}
+              size={size - 2}
+              color={color}
+            />
           ),
         }}
       />
@@ -44,19 +53,27 @@ export default function TabLayout() {
         name="transactions"
         options={{
           title: 'Transactions',
-          tabBarLabel: 'History',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="receipt-outline" size={size} color={color} />
+          tabBarLabel: 'Activity',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'receipt' : 'receipt-outline'}
+              size={size - 2}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="budgets"
         options={{
-          title: 'Budgets',
+          title: 'Spending Plan',
           tabBarLabel: 'Budgets',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="pie-chart-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'pie-chart' : 'pie-chart-outline'}
+              size={size - 2}
+              color={color}
+            />
           ),
         }}
       />
@@ -64,9 +81,13 @@ export default function TabLayout() {
         name="analytics"
         options={{
           title: 'Analytics',
-          tabBarLabel: 'Analytics',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart-outline" size={size} color={color} />
+          tabBarLabel: 'Insights',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'bar-chart' : 'bar-chart-outline'}
+              size={size - 2}
+              color={color}
+            />
           ),
         }}
       />
