@@ -1,11 +1,55 @@
-import React from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../../context/AppContext';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
+import { Budget } from '../../types';
 
+import BudgetAlertBanner from '../../components/budgets/BudgetAlertBanner';
+import BudgetCard from '../../components/budgets/BudgetCard';
+import BudgetFormModal from '../../components/budgets/BudgetFormModal';
+
+/**
+ * BudgetsScreen (Person 4 Module)
+ * Category budget planner with limit setup, multi-state progress indicators,
+ * over-budget threshold alerts, and editing/deletion.
+ */
 export default function BudgetsScreen() {
-  const { budgets, getCategorySpent } = useApp();
+  const {
+    budgets,
+    categories,
+    getCategorySpent,
+    setBudget,
+    deleteBudget,
+  } = useApp();
+
+  // Modal and editing state
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+
+  const handleOpenAdd = () => {
+    setEditingBudget(null);
+    setModalVisible(true);
+  };
+
+  const handleOpenEdit = (budget: Budget) => {
+    setEditingBudget(budget);
+    setModalVisible(true);
+  };
+
+  const handleSaveBudget = async (category: string, limit: number) => {
+    await setBudget({
+      category,
+      limit,
+      period: 'monthly',
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -13,14 +57,35 @@ export default function BudgetsScreen() {
         data={budgets}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Spending Plan</Text>
-            <Text style={styles.headerSubtitle}>
-              {budgets.length === 0
-                ? 'No budget limits configured'
-                : `${budgets.length} category budgets`}
-            </Text>
+          <View style={styles.headerArea}>
+            {/* Action Bar: Targets Count & "+ Set Budget" Button */}
+            <View style={styles.actionBar}>
+              <View>
+                <Text style={styles.sectionSubtitle}>Monthly Targets</Text>
+                <Text style={styles.countText}>
+                  {budgets.length === 0
+                    ? 'No active limits'
+                    : `${budgets.length} category budgets`}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.setBudgetBtn}
+                onPress={handleOpenAdd}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add" size={16} color="#FFFFFF" />
+                <Text style={styles.setBudgetBtnText}>Set Budget</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Threshold Alert Notification Banner */}
+            <BudgetAlertBanner
+              budgets={budgets}
+              getCategorySpent={getCategorySpent}
+            />
           </View>
         }
         ListEmptyComponent={
@@ -30,44 +95,42 @@ export default function BudgetsScreen() {
             </View>
             <Text style={styles.emptyTitle}>No budget targets yet</Text>
             <Text style={styles.emptyText}>
-              Setting monthly spending limits helps keep your personal finances balanced and predictable.
+              Set monthly spending targets for categories like Food, Transport, or Shopping to keep your finances balanced.
             </Text>
+            <TouchableOpacity
+              style={styles.createFirstBtn}
+              onPress={handleOpenAdd}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={16} color="#FFFFFF" />
+              <Text style={styles.createFirstBtnText}>Create Your First Budget</Text>
+            </TouchableOpacity>
           </View>
         }
         renderItem={({ item }) => {
+          const categoryObj = categories.find((c) => c.name === item.category);
           const spent = getCategorySpent(item.category);
-          const percent = Math.min(Math.round((spent / item.limit) * 100), 100);
-          const isOver = spent > item.limit;
 
           return (
-            <View style={styles.budgetCard}>
-              <View style={styles.topRow}>
-                <Text style={styles.categoryName}>{item.category}</Text>
-                <Text style={[styles.spentText, isOver && { color: COLORS.expense }]}>
-                  ${spent.toFixed(2)} / ${item.limit.toFixed(2)}
-                </Text>
-              </View>
-
-              <View style={styles.progressBarBackground}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    {
-                      width: `${percent}%`,
-                      backgroundColor: isOver
-                        ? COLORS.expense
-                        : percent > 75
-                        ? COLORS.warning
-                        : COLORS.income,
-                    },
-                  ]}
-                />
-              </View>
-
-              <Text style={styles.progressPercent}>{percent}% spent</Text>
-            </View>
+            <BudgetCard
+              budget={item}
+              spent={spent}
+              category={categoryObj}
+              onEdit={handleOpenEdit}
+              onDelete={deleteBudget}
+            />
           );
         }}
+      />
+
+      {/* Modal to Add / Edit Category Budget */}
+      <BudgetFormModal
+        key={modalVisible ? editingBudget?.id || 'new' : 'closed'}
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        categories={categories}
+        existingBudget={editingBudget}
+        onSave={handleSaveBudget}
       />
     </View>
   );
@@ -78,68 +141,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
-    marginBottom: SPACING.md,
-    marginTop: SPACING.xs,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.text,
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
   listContent: {
     padding: SPACING.md,
     gap: SPACING.sm,
     paddingBottom: SPACING.xxl,
   },
-  budgetCard: {
-    backgroundColor: COLORS.surface,
-    padding: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 10,
-    shadowColor: '#1A382B',
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+  headerArea: {
+    gap: SPACING.md,
+    marginBottom: SPACING.xs,
   },
-  topRow: {
+  actionBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: SPACING.xs,
   },
-  categoryName: {
-    fontSize: 15,
-    fontWeight: '700',
+  sectionSubtitle: {
+    fontSize: 18,
+    fontWeight: '800',
     color: COLORS.text,
+    letterSpacing: -0.3,
   },
-  spentText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textMuted,
-  },
-  progressBarBackground: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.borderSubtle,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  progressPercent: {
+  countText: {
     fontSize: 12,
     color: COLORS.textMuted,
-    textAlign: 'right',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  setBudgetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: RADIUS.full,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  setBudgetBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   emptyCard: {
     backgroundColor: COLORS.surface,
@@ -148,7 +194,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
-    gap: 10,
+    gap: 12,
     marginTop: SPACING.md,
   },
   emptyIconCircle: {
@@ -158,7 +204,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   emptyTitle: {
     fontSize: 16,
@@ -171,5 +217,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
     paddingHorizontal: SPACING.sm,
+  },
+  createFirstBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: RADIUS.full,
+    marginTop: 4,
+  },
+  createFirstBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

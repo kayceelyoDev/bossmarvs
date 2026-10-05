@@ -66,7 +66,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="budgets"
         options={{
-          title: 'Spending Plan',
+          title: 'Budgets',
           tabBarLabel: 'Budgets',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
